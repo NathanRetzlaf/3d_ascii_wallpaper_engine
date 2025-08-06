@@ -32,7 +32,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 const ascii = new AsciiEffect(
   renderer,
-  " .:-+*=%@#", // charset
+  " .,:;-~!*=#$@", // charset
   { invert: true, resolution: 0.2 }
 );
 ascii.setSize(window.innerWidth, window.innerHeight);
