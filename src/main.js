@@ -2,7 +2,6 @@
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { AsciiEffect } from "three/examples/jsm/effects/AsciiEffect.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 // — Scene & background
 const scene = new THREE.Scene();
@@ -24,7 +23,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(0, 0, 5);
+camera.position.set(0, 0, 2);
 
 // — Renderer + ASCIIEffect
 const renderer = new THREE.WebGLRenderer();
@@ -40,9 +39,6 @@ ascii.domElement.style.whiteSpace = "pre";
 ascii.domElement.style.backgroundColor = "black";
 ascii.domElement.style.color = "white";
 document.body.appendChild(ascii.domElement);
-
-// — OrbitControls
-new OrbitControls(camera, ascii.domElement);
 
 // — Mesh container
 const mesh = new THREE.Mesh();
