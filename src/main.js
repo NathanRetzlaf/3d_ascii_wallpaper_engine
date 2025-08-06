@@ -32,7 +32,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 const ascii = new AsciiEffect(
   renderer,
   " .,:;-~!*=#$@", // charset
-  { invert: true, resolution: 0.2 }
+  { invert: true, resolution: 0.25 }
 );
 ascii.setSize(window.innerWidth, window.innerHeight);
 ascii.domElement.style.whiteSpace = "pre";
