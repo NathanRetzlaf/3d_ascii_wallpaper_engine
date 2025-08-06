@@ -9,13 +9,13 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
 // — Lights
-scene.add(new THREE.AmbientLight(0x404040, 1)); // soft ambient fill
-const point1 = new THREE.PointLight(0xffffff, 1);
-point1.position.set(100, 100, 400);
-scene.add(point1);
-const point2 = new THREE.PointLight(0xffffff, 0.5);
-point2.position.set(-500, 100, -400);
-scene.add(point2);
+// 1) Soft, low‐level ambient
+scene.add(new THREE.AmbientLight(0x222222, 1));
+
+// 2) Directional “sun” light for shading
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(1, 1, 1).normalize();
+scene.add(dirLight);
 
 // — Camera
 const camera = new THREE.PerspectiveCamera(
@@ -42,34 +42,38 @@ ascii.domElement.style.color = "white";
 document.body.appendChild(ascii.domElement);
 
 // — OrbitControls
-const controls = new OrbitControls(camera, ascii.domElement);
+new OrbitControls(camera, ascii.domElement);
 
 // — Mesh container
 const mesh = new THREE.Mesh();
 scene.add(mesh);
 
-// — STL Loader
+// — STL Loader & “shaded” material
 const loader = new STLLoader();
-const material = new THREE.MeshStandardMaterial({
-  color: 0xffffff, // white so it shows against black
-  flatShading: true,
-  side: THREE.DoubleSide,
-});
+// const material = new THREE.MeshPhongMaterial({
+//   color: 0xffffff, // bright white
+//   shininess: 50, // adds specular highlights
+//   flatShading: false, // smooth normals
+// });
+const material = new THREE.MeshStandardMaterial();
+material.flatShading = true;
+material.side = THREE.DoubleSide;
+
 loader.load(
   "./models/thorn.stl",
   (geometry) => {
-    geometry.computeVertexNormals();
+    geometry.computeVertexNormals(); // smooth normals
     geometry.center();
 
     mesh.geometry = geometry;
     mesh.material = material;
 
-    // Frame the camera using boundingSphere
+    // Frame the camera on the model
     const bs = geometry.boundingSphere;
     camera.position.set(bs.center.x, bs.center.y, bs.center.z + bs.radius * 2);
     camera.lookAt(bs.center);
 
-    // Helpers to visualize orientation
+    // Helpers to verify orientation
     scene.add(new THREE.BoxHelper(mesh, 0xffff00));
     scene.add(new THREE.AxesHelper(bs.radius * 1.5));
   },
