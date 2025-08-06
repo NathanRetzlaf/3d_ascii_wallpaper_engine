@@ -46,15 +46,11 @@ new OrbitControls(camera, ascii.domElement);
 
 // — Mesh container
 const mesh = new THREE.Mesh();
+mesh.rotation.x = -0.35 * Math.PI; // lay flat
 scene.add(mesh);
 
 // — STL Loader & “shaded” material
 const loader = new STLLoader();
-// const material = new THREE.MeshPhongMaterial({
-//   color: 0xffffff, // bright white
-//   shininess: 50, // adds specular highlights
-//   flatShading: false, // smooth normals
-// });
 const material = new THREE.MeshStandardMaterial();
 material.flatShading = true;
 material.side = THREE.DoubleSide;
@@ -87,6 +83,7 @@ loader.load(
 // — Animation loop
 function animate() {
   mesh.rotation.z += 0.01;
+
   ascii.render(scene, camera);
   requestAnimationFrame(animate);
 }
