@@ -8,10 +8,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
 // — Lights
-// 1) Soft, low‐level ambient
 scene.add(new THREE.AmbientLight(0x222222, 1));
-
-// 2) Directional “sun” light for shading
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
 dirLight.position.set(1, 1, 1).normalize();
 scene.add(dirLight);
@@ -24,6 +21,7 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 camera.position.set(0, 0, 2);
+const baseFov = camera.fov;
 
 // — Renderer + ASCIIEffect
 const renderer = new THREE.WebGLRenderer();
@@ -32,7 +30,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 const ascii = new AsciiEffect(
   renderer,
   " .,:;-~!*=#$@", // charset
-  { invert: true, resolution: 0.25 }
+  { invert: true, resolution: 0.075 }
 );
 ascii.setSize(window.innerWidth, window.innerHeight);
 ascii.domElement.style.whiteSpace = "pre";
@@ -45,13 +43,19 @@ const mesh = new THREE.Mesh();
 mesh.rotation.x = -0.35 * Math.PI; // lay flat
 scene.add(mesh);
 
-// — OBJ Loader & “shaded” material
+// — OBJ Loader & material
 const loader = new OBJLoader();
-const material = new THREE.MeshStandardMaterial();
-material.flatShading = true;
-material.side = THREE.DoubleSide;
+const material = new THREE.MeshStandardMaterial({
+  flatShading: true,
+  side: THREE.DoubleSide,
+});
 let currentModel = null;
 
+// default settings
+let rotationSpeed = 0.01;
+let asciiScale = 1;
+
+// load model function
 function loadModel(path) {
   if (path === currentModel) return;
   currentModel = path;
@@ -59,31 +63,21 @@ function loadModel(path) {
   loader.load(
     path,
     (object) => {
-      // find the first mesh in the hierarchy
       let geometry = null;
       object.traverse((child) => {
-        if (child.isMesh && !geometry) {
-          geometry = child.geometry;
-        }
+        if (child.isMesh && !geometry) geometry = child.geometry;
       });
       if (!geometry) {
         console.error("No mesh found in OBJ");
-
         return;
       }
-
-      // exactly as before
-      geometry.computeVertexNormals(); // smooth normals
+      geometry.computeVertexNormals();
       geometry.center();
-
       mesh.geometry = geometry;
       mesh.material = material;
 
-      // recompute bounding sphere after centering
       geometry.computeBoundingSphere();
       const bs = geometry.boundingSphere;
-
-      // Frame the camera on the model
       camera.position.set(
         bs.center.x,
         bs.center.y,
@@ -95,58 +89,57 @@ function loadModel(path) {
       console.log(
         `Loading progress: ${((xhr.loaded / xhr.total) * 100).toFixed(1)}%`
       ),
-    (err) => {
-      console.error("OBJ load error", err);
-
-      // // Fallback: load a default model if the specified one fails
-      // if (path !== "models/thorn.obj") {
-      //   console.warn("Loading default model instead.");
-      //   loadModel("models/thorn.obj");
-      // }
-    }
+    (err) => console.error("OBJ load error", err)
   );
 }
 
+// resize handler\
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  const rw = w * asciiScale;
+  const rh = h * asciiScale;
+  ascii.setSize(rw, rh);
+}
+
+window.addEventListener("resize", onResize);
+
+// initial load & resize
 loadModel("models/thorn.obj");
-let speed = 0.01; // default speed
+onResize();
 
-window.wallpaperPropertyListener = {
-  applyUserProperties: function (props) {
-    // props.model.value matches your JSON "model" property
-    if (props.model && typeof props.model.value === "string") {
-      loadModel(props.model.value);
-    }
+// Wallpaper Engine listener
+if (window.wallpaperPropertyListener) {
+  window.wallpaperPropertyListener = {
+    applyUserProperties: function (props) {
+      if (props.model && typeof props.model.value === "string") {
+        loadModel(props.model.value);
+      }
+      if (props.schemecolor && typeof props.schemecolor.value === "string") {
+        const [r, g, b] = props.schemecolor.value.split(" ").map(Number);
+        scene.background = new THREE.Color(r, g, b);
+      }
+      if (props.speed && typeof props.speed.value === "number") {
+        rotationSpeed = props.speed.value * 0.01;
+      }
+      if (props.asciirender && typeof props.asciirender.value === "number") {
+        asciiScale = props.asciirender.value;
+      }
+      onResize();
+    },
+  };
+} else {
+  // dev fallback for Vite
+  loadModel("models/thorn.obj");
+}
 
-    // if you also want to read the color chooser:
-    if (props.schemecolor && typeof props.schemecolor.value === "string") {
-      const [r, g, b] = props.schemecolor.value
-        .split(" ")
-        .map((v) => Math.round(Number(v) * 255)); // WallpaperEngine gives 0–1 floats
-      // e.g. apply to background, material, etc.
-      scene.background = new THREE.Color(r / 255, g / 255, b / 255);
-    }
-
-    if (props.speed && typeof props.speed.value === "number") {
-      speed = props.speed.value * 0.01;
-    }
-  },
-};
-
-// — Animation loop
+// animation loop
 function animate() {
-  mesh.rotation.z += speed; // slow rotation
-
+  mesh.rotation.z += rotationSpeed;
   ascii.render(scene, camera);
   requestAnimationFrame(animate);
 }
-animate();
 
-// — Handle window resize
-window.addEventListener("resize", () => {
-  const w = window.innerWidth,
-    h = window.innerHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-  ascii.setSize(w, h);
-});
+animate();
