@@ -51,50 +51,67 @@ const material = new THREE.MeshStandardMaterial();
 material.flatShading = true;
 material.side = THREE.DoubleSide;
 
-loader.load(
-  "./models/Monte Carlo.obj",
-
-  // — callback now receives the loaded Object3D
-  (object) => {
-    // find the first mesh in the hierarchy
-    let geometry = null;
-    object.traverse((child) => {
-      if (child.isMesh && !geometry) {
-        geometry = child.geometry;
+function loadModel(path) {
+  console.log("Loading OBJ →", path);
+  loader.load(
+    path,
+    (object) => {
+      // find the first mesh in the hierarchy
+      let geometry = null;
+      object.traverse((child) => {
+        if (child.isMesh && !geometry) {
+          geometry = child.geometry;
+        }
+      });
+      if (!geometry) {
+        console.error("No mesh found in OBJ");
+        return;
       }
-    });
-    if (!geometry) {
-      console.error("No mesh found in OBJ");
-      return;
+
+      // exactly as before
+      geometry.computeVertexNormals(); // smooth normals
+      geometry.center();
+
+      mesh.geometry = geometry;
+      mesh.material = material;
+
+      // recompute bounding sphere after centering
+      geometry.computeBoundingSphere();
+      const bs = geometry.boundingSphere;
+
+      // Frame the camera on the model
+      camera.position.set(
+        bs.center.x,
+        bs.center.y,
+        bs.center.z + bs.radius * 2
+      );
+      camera.lookAt(bs.center);
+    },
+    (xhr) =>
+      console.log(
+        `Loading progress: ${((xhr.loaded / xhr.total) * 100).toFixed(1)}%`
+      ),
+    (err) => console.error("OBJ load error", err)
+  );
+}
+
+window.wallpaperPropertyListener = {
+  applyUserProperties: function (props) {
+    // props.key.value matches your JSON "key" property
+    if (props.key && typeof props.key.value === "string") {
+      loadModel(props.key.value);
     }
 
-    // exactly as before
-    geometry.computeVertexNormals(); // smooth normals
-    geometry.center();
-
-    mesh.geometry = geometry;
-    mesh.material = material;
-
-    // recompute bounding sphere after centering
-    geometry.computeBoundingSphere();
-    const bs = geometry.boundingSphere;
-
-    // Frame the camera on the model
-    camera.position.set(bs.center.x, bs.center.y, bs.center.z + bs.radius * 2);
-    camera.lookAt(bs.center);
-
-    // Helpers to verify orientation
-    // scene.add(new THREE.BoxHelper(mesh, 0xffff00));
-    // scene.add(new THREE.AxesHelper(bs.radius * 1.5));
+    // if you also want to read the color chooser:
+    if (props.schemecolor && typeof props.schemecolor.value === "string") {
+      const [r, g, b] = props.schemecolor.value
+        .split(" ")
+        .map((v) => Math.round(Number(v) * 255)); // WallpaperEngine gives 0–1 floats
+      // e.g. apply to background, material, etc.
+      scene.background = new THREE.Color(r / 255, g / 255, b / 255);
+    }
   },
-
-  // onProgress
-  (xhr) =>
-    console.log(`Model ${((xhr.loaded / xhr.total) * 100).toFixed(1)}% loaded`),
-
-  // onError
-  (err) => console.error("OBJ load error:", err)
-);
+};
 
 // — Animation loop
 function animate() {
