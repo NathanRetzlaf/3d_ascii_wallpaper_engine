@@ -108,12 +108,13 @@ function loadModel(path) {
 }
 
 loadModel("models/thorn.obj");
+let speed = 0.01; // default speed
 
 window.wallpaperPropertyListener = {
   applyUserProperties: function (props) {
-    // props.key.value matches your JSON "key" property
-    if (props.key && typeof props.key.value === "string") {
-      loadModel(props.key.value);
+    // props.model.value matches your JSON "model" property
+    if (props.model && typeof props.model.value === "string") {
+      loadModel(props.model.value);
     }
 
     // if you also want to read the color chooser:
@@ -124,12 +125,16 @@ window.wallpaperPropertyListener = {
       // e.g. apply to background, material, etc.
       scene.background = new THREE.Color(r / 255, g / 255, b / 255);
     }
+
+    if (props.speed && typeof props.speed.value === "number") {
+      speed = props.speed.value * 0.01;
+    }
   },
 };
 
 // — Animation loop
 function animate() {
-  mesh.rotation.z += 0.01;
+  mesh.rotation.z += speed; // slow rotation
 
   ascii.render(scene, camera);
   requestAnimationFrame(animate);
