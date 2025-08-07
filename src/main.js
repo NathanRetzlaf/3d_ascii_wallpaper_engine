@@ -52,7 +52,7 @@ material.flatShading = true;
 material.side = THREE.DoubleSide;
 
 loader.load(
-  "./models/thorn.obj",
+  "./models/Monte Carlo.obj",
 
   // — callback now receives the loaded Object3D
   (object) => {
