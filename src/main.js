@@ -50,8 +50,11 @@ const loader = new OBJLoader();
 const material = new THREE.MeshStandardMaterial();
 material.flatShading = true;
 material.side = THREE.DoubleSide;
+let currentModel = null;
 
 function loadModel(path) {
+  if (path === currentModel) return;
+  currentModel = path;
   console.log("Loading OBJ →", path);
   loader.load(
     path,
@@ -65,6 +68,7 @@ function loadModel(path) {
       });
       if (!geometry) {
         console.error("No mesh found in OBJ");
+
         return;
       }
 
@@ -91,9 +95,19 @@ function loadModel(path) {
       console.log(
         `Loading progress: ${((xhr.loaded / xhr.total) * 100).toFixed(1)}%`
       ),
-    (err) => console.error("OBJ load error", err)
+    (err) => {
+      console.error("OBJ load error", err);
+
+      // // Fallback: load a default model if the specified one fails
+      // if (path !== "models/thorn.obj") {
+      //   console.warn("Loading default model instead.");
+      //   loadModel("models/thorn.obj");
+      // }
+    }
   );
 }
+
+loadModel("models/thorn.obj");
 
 window.wallpaperPropertyListener = {
   applyUserProperties: function (props) {
