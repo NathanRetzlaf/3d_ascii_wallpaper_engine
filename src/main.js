@@ -1,6 +1,6 @@
 // index.js
 import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { AsciiEffect } from "three/examples/jsm/effects/AsciiEffect.js";
 
 // — Scene & background
@@ -45,35 +45,55 @@ const mesh = new THREE.Mesh();
 mesh.rotation.x = -0.35 * Math.PI; // lay flat
 scene.add(mesh);
 
-// — STL Loader & “shaded” material
-const loader = new STLLoader();
+// — OBJ Loader & “shaded” material
+const loader = new OBJLoader();
 const material = new THREE.MeshStandardMaterial();
 material.flatShading = true;
 material.side = THREE.DoubleSide;
 
 loader.load(
-  "./models/thorn.stl",
-  (geometry) => {
+  "./models/thorn.obj",
+
+  // — callback now receives the loaded Object3D
+  (object) => {
+    // find the first mesh in the hierarchy
+    let geometry = null;
+    object.traverse((child) => {
+      if (child.isMesh && !geometry) {
+        geometry = child.geometry;
+      }
+    });
+    if (!geometry) {
+      console.error("No mesh found in OBJ");
+      return;
+    }
+
+    // exactly as before
     geometry.computeVertexNormals(); // smooth normals
     geometry.center();
 
     mesh.geometry = geometry;
     mesh.material = material;
 
-    // Frame the camera on the model
+    // recompute bounding sphere after centering
+    geometry.computeBoundingSphere();
     const bs = geometry.boundingSphere;
+
+    // Frame the camera on the model
     camera.position.set(bs.center.x, bs.center.y, bs.center.z + bs.radius * 2);
     camera.lookAt(bs.center);
 
     // Helpers to verify orientation
-    scene.add(new THREE.BoxHelper(mesh, 0xffff00));
-    scene.add(new THREE.AxesHelper(bs.radius * 1.5));
+    // scene.add(new THREE.BoxHelper(mesh, 0xffff00));
+    // scene.add(new THREE.AxesHelper(bs.radius * 1.5));
   },
+
   // onProgress
   (xhr) =>
     console.log(`Model ${((xhr.loaded / xhr.total) * 100).toFixed(1)}% loaded`),
+
   // onError
-  (err) => console.error("STL load error:", err)
+  (err) => console.error("OBJ load error:", err)
 );
 
 // — Animation loop
